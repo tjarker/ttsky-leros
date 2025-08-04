@@ -1,0 +1,3 @@
+[submodule "dtu_ss"]
+	path = dtu_ss
+	url = https://github.com/Edu4Chip/Subsystem_DTU.git

@@ -1,4 +1,8 @@
 import chisel3._
+import dtu.DtuSubsystem
+import dtu.DtuSubsystemConfig
+import mem.MemoryFactory
+import circt.stage.ChiselStage
 
 /**
  * Example design in Chisel.
@@ -13,24 +17,25 @@ class ChiselTop() extends Module {
     val uio_oe = Output(UInt(8.W))    // IOs: Enable path (active high: 0=input, 1=output)
   })
 
-  io.uio_out := 0.U
-  // use bi-directionals as input
-  io.uio_oe := 0.U
+  MemoryFactory.use(mem.ChiselSyncMemory.create)
+  val dtu_ss = Module(new DtuSubsystem(DtuSubsystemConfig.default
+  .copy(
+    romProgramPath = "dtu_ss/leros-asm/didactic_rt.s",
+    instructionMemorySize = 1 << 5,
+    dataMemorySize = 1 << 5,
+    gpioPins = 16
+  )))
 
-  val add = WireDefault(0.U(7.W))
-  add := io.ui_in + io.uio_in
+  dtu_ss.io.apb := DontCare
+  dtu_ss.io.ssCtrl := 0.U
+  dtu_ss.io.irqEn := false.B
 
-  // Blink with 1 Hz
-  val cntReg = RegInit(0.U(32.W))
-  val ledReg = RegInit(0.U(1.W))
-  cntReg := cntReg + 1.U
-  when (cntReg === 25000000.U) {
-    cntReg := 0.U
-    ledReg := ~ledReg
-  }
-  io.uo_out := ledReg ## add
+  dtu_ss.io.gpio.in := io.ui_in ## io.uio_in
+  io.uo_out := dtu_ss.io.gpio.out(15,8)
+  io.uio_oe := dtu_ss.io.gpio.outputEnable
+  io.uio_out := dtu_ss.io.gpio.out(7,0)
 }
 
 object ChiselTop extends App {
-  emitVerilog(new ChiselTop(), Array("--target-dir", "src"))
+  ChiselStage.emitSystemVerilogFile(new ChiselTop(), Array("--target-dir", "src"), Array("--lowering-options=disallowLocalVariables,disallowPackedArrays"))
 }
