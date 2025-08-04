@@ -3,7 +3,7 @@
 
 # generate the Verilog
 run-verilog:
-	sbt run
+	sbt "runMain ChiselTop"
 
 # Test the Chisel design
 run-test:
