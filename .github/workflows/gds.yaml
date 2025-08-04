@@ -20,7 +20,7 @@ jobs:
           cache: sbt
       - uses: sbt/setup-sbt@v1
       - name: generate Verilog
-        run: sbt run
+        run: make run-verilog
         
       - name: Build GDS
         uses: TinyTapeout/tt-gds-action@ttsky25a
